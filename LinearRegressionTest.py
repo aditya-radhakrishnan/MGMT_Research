@@ -1,29 +1,50 @@
 import numpy as np
 import tensorflow as tf
 import math
-from Preprocessing import Preprocessing
+from Preprocessor_Wrapper import PreprocessorWrapper
 
-processor = Preprocessing('/home/raditya/Documents/untitled folder/part1.txt',
-                          '/home/raditya/Documents/untitled folder/EarningsCallModelPart1.txt', need_to_create_model=True)
+files_list = ['/home/raditya/Documents/untitled folder/part1.txt',
+                 '/home/raditya/Documents/untitled folder/part2.txt',
+                 '/home/raditya/Documents/untitled folder/part3.txt']
+models_list = ['/home/raditya/Documents/untitled folder/model1.txt',
+                 '/home/raditya/Documents/untitled folder/model2.txt',
+                 '/home/raditya/Documents/untitled folder/model3.txt']
+ratios_list = [0.5, 0.25, 0.25]
+processor = PreprocessorWrapper(files_list, models_list, ratios_list, need_to_make_models=False)
+preprocessor = processor.get_first_preprocessor()
 
 # Count of training, test and validation sets
-num_steps = 1
+num_steps = 10000
 # Document dimensions
 dropout_keep_prob = 0.5
-word_length = processor.gensim_maker_obj.get_dimension_of_a_word()
-num_words = processor.max_num_words
+word_length = preprocessor.gensim_maker_obj.get_dimension_of_a_word()
+num_words = preprocessor.max_num_words
 
-train_data, train_values, valid_data, valid_values, test_data, test_values = processor.get_data_set([0.5, 0.25, 0.25])
+dropout_keep_prob = 0.5
+word_length = preprocessor.gensim_maker_obj.get_dimension_of_a_word()
+num_words = preprocessor.max_num_words
+
+train_data = processor.get_training_data_from_channel(channel_num=0)
+train_values = processor.get_training_data_labels()
+
+test_data = processor.get_test_data_from_channel(channel_num=0)
+test_values = processor.get_test_data_labels()
+
+valid_data = processor.get_validation_data_from_channel(channel_num=0)
+valid_values = processor.get_validation_data_labels()
+
 num_train_docs = train_values.shape[0]
 num_test_docs = test_values.shape[0]
+num_valid_docs = valid_values.shape[0]
+num_labels = train_values.shape[1]
 num_valid_docs = valid_values.shape[0]
 num_output_values = train_values.shape[1]
 
 # Neural network constants
-batch_size = int(math.floor(num_train_docs / 10))
+batch_size = int(math.floor(num_train_docs / 50))
 patch_sizes1 = 10
 patch_sizes2 = 5
-pooling_size = 4
+pooling_size = 2
 num_features_conv1 = 16
 num_features_conv2 = 16
 num_full_conn = 32
@@ -31,29 +52,42 @@ beta = 0.01
 
 
 def weight_variable(shape):
-  initial = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float32)
-  return tf.Variable(initial)
+    initial = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float32)
+    return tf.Variable(initial)
 
 
 def bias_variable(shape):
-  initial = tf.constant(0.1, shape=shape, dtype=tf.float32)
-  return tf.Variable(initial)
+    initial = tf.constant(0.1, shape=shape, dtype=tf.float32)
+    return tf.Variable(initial)
 
 
 def weight_bias_variables(shape):
     return weight_variable(shape), bias_variable([shape[len(shape) - 1]])
 
+
 def conv2d(x, W):
-  return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='VALID')
+    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='VALID')
 
 
 def max_pool(x, num_filter_words):
-  return tf.nn.max_pool(x, ksize=[1, 1, num_filter_words, 1], strides=[1, 1, num_filter_words, 1], padding='VALID')
+    return tf.nn.max_pool(x, ksize=[1, 1, num_filter_words, 1], strides=[1, 1, num_filter_words, 1], padding='VALID')
+
+'''
+def accuracy(predicts, values):
+    return np.mean((np.sqrt(np.sum(np.square(predicts - values), axis=1))), axis=0)
+'''
 
 
 def accuracy(predicts, values):
-    return predicts - values
-  # return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / predictions.shape[0])
+    abs_diff = np.abs(values - predicts)
+    abs_sum = np.abs(values) + np.abs(predicts)
+    return np.mean(np.divide(abs_diff, abs_sum))
+
+
+def tensor_print(label, tensor):
+    if tensor.get_shape()[0].value is not None:
+        print(label + ' shape', tensor.get_shape())
+
 graph = tf.Graph()
 
 
@@ -76,7 +110,7 @@ with graph.as_default():
     first_conv_dim = int(math.floor((num_words - (patch_sizes1 - 1)) / pooling_size))
     second_conv_dim = int(math.floor((first_conv_dim - (patch_sizes2 - 1)) / pooling_size))
     size = second_conv_dim * 1 * num_features_conv2
-    weights_full_conn, biases_full_conn = weight_bias_variables()([size, num_full_conn])
+    weights_full_conn, biases_full_conn = weight_bias_variables([size, num_full_conn])
 
     # Weights and biases for softmax layer
     weights_output, biases_output = weight_bias_variables([num_full_conn, num_output_values])
@@ -118,8 +152,8 @@ with tf.Session(graph=graph) as session:
         batch_values = train_values[batch_indices, :]
         feed_dict = {tf_train_data: batch_data, tf_train_values: batch_values}
         _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
-        if (step % 500 == 0):
-            print('Minibatch loss at step %d: %f' % (step, l))
-            print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_values))
-            print('Validation accuracy: %.1f%%' % accuracy(valid_prediction.eval(), valid_values))
-    print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_values))
+        if step % 500 == 0:
+            print('Minibatch loss at step ', (step, l))
+            print('Minibatch error: ', accuracy(predictions, batch_values))
+            print('Validation error: ', accuracy(valid_prediction.eval(), valid_values))
+    print('Test error: ', accuracy(test_prediction.eval(), test_values))

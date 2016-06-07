@@ -1,6 +1,6 @@
 import os, re
 
-# class to iterate over sentences in a file, assuming the input is given as a patent + some property per line
+# class to iterate over sentences in all files in a directory
 class SentenceMaker(object):
     # the location of the directory that this class will iterate over
     file_name = ''
@@ -20,7 +20,7 @@ class SentenceMaker(object):
             if self.lower_case_flag:
                 line = line.lower()
             if self.keep_punctuation_flag:
-                sentences = re.split('[.!?;]*', line)
+                sentences = re.split('(.!?;)*', line)
             else:
                 sentences = re.split('[.!?;]*', line)
             for sentence in sentences:

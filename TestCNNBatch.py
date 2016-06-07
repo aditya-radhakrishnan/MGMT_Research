@@ -2,12 +2,12 @@ import numpy as np
 import tensorflow as tf
 
 # Count of training, test and validation sets
-num_train_docs = 20
-num_test_docs = 5
-num_valid_docs = 5
-num_labels = 5
+num_train_docs = 2000
+num_test_docs = 500
+num_valid_docs = 500
+num_labels = 50
 # The dimensions of each document (vector_length, num_words)
-doc_dims = (2, 5)
+doc_dims = (20, 500)
 
 def gen_examples(num_docs):
     examples = np.random.random_sample(doc_dims)

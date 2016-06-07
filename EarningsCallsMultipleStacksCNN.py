@@ -3,12 +3,12 @@ import tensorflow as tf
 import math
 from Preprocessor_Wrapper import PreprocessorWrapper
 
-files_list = ['/home/raditya/Documents/untitled folder/part1.txt',
-                 '/home/raditya/Documents/untitled folder/part2.txt',
-                 '/home/raditya/Documents/untitled folder/part3.txt']
-models_list = ['/home/raditya/Documents/untitled folder/model1.txt',
-                 '/home/raditya/Documents/untitled folder/model2.txt',
-                 '/home/raditya/Documents/untitled folder/model3.txt']
+files_list = ['/home/raditya/Documents/untitled folder/multi1.txt',
+                 '/home/raditya/Documents/untitled folder/multi1.txt',
+                 '/home/raditya/Documents/untitled folder/multi1.txt']
+models_list = ['/home/raditya/Documents/untitled folder/multimodel1.txt',
+                 '/home/raditya/Documents/untitled folder/multimodel1.txt',
+                 '/home/raditya/Documents/untitled folder/multimodel1.txt']
 ratios_list = [0.5, 0.25, 0.25]
 processor = PreprocessorWrapper(files_list, models_list, ratios_list, need_to_make_models=False)
 preprocessor = processor.get_first_preprocessor()
@@ -22,7 +22,7 @@ Softmax layer
 '''
 
 # Count of training, test and validation sets
-num_steps = 100
+num_steps = 10000
 # Document dimensions
 dropout_keep_prob = 0.5
 word_length = preprocessor.gensim_maker_obj.get_dimension_of_a_word()
@@ -49,35 +49,35 @@ num_valid_docs = valid_labels.shape[0]
 num_labels = train_labels.shape[1]
 
 # Neural network constants
-batch_size = int(math.floor(num_train_docs / 10))
+batch_size = int(math.floor(num_train_docs / 50))
 
-patch_size_s1_c1 = 10
-patch_size_s1_c2 = 10
-patch_size_s2_c1 = 10
-patch_size_s2_c2 = 10
-patch_size_s3_c1 = 10
-patch_size_s3_c2 = 10
+patch_size_s1_c1 = 20
+patch_size_s1_c2 = 5
+patch_size_s2_c1 = 20
+patch_size_s2_c2 = 5
+patch_size_s3_c1 = 20
+patch_size_s3_c2 = 5
 
-pool_size_s1_c1 = 3
-pool_size_s1_c2 = 3
-pool_size_s2_c1 = 3
-pool_size_s2_c2 = 3
-pool_size_s3_c1 = 3
-pool_size_s3_c2 = 3
+pool_size_s1_c1 = 2
+pool_size_s1_c2 = 2
+pool_size_s2_c1 = 2
+pool_size_s2_c2 = 2
+pool_size_s3_c1 = 2
+pool_size_s3_c2 = 2
 
-num_feat_s1_c1 = 8
-num_feat_s1_c2 = 8
-num_feat_s2_c1 = 8
-num_feat_s2_c2 = 8
-num_feat_s3_c1 = 8
-num_feat_s3_c2 = 8
+num_feat_s1_c1 = 16
+num_feat_s1_c2 = 16
+num_feat_s2_c1 = 16
+num_feat_s2_c2 = 16
+num_feat_s3_c1 = 16
+num_feat_s3_c2 = 16
 
-num_full_conn_1 = 16
+num_full_conn_1 = 32
 
 patch_size_integ = 4
-pool_size_integ = 1
-num_feat_integ = 4
-num_full_conn_2 = 8
+pool_size_integ = 4
+num_feat_integ = 8
+num_full_conn_2 = 32
 beta = 0.01
 
 def weight_variable(shape):
@@ -187,7 +187,7 @@ with tf.Session(graph=graph) as session:
         batch_labels = train_labels[batch_indices, :]
         feed_dict = {tf_train_s1: batch_s1, tf_train_s2: batch_s2, tf_train_s3: batch_s3, tf_train_labels: batch_labels}
         _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
-        if step % 5 == 0:
+        if step % 500 == 0:
             print('Minibatch loss at step %d: %f' % (step, l))
             print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
             print('Validation accuracy: %.1f%%' % accuracy(valid_prediction.eval(), valid_labels))
